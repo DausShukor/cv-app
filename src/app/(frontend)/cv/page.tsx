@@ -64,10 +64,10 @@ async function fetchProfile(headers: Record<string, string>): Promise<ProfileDat
 
 async function fetchArticles(headers: Record<string, string>): Promise<Article[]> {
   const base = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'
-  const res = await fetch(
-    `${base}/api/articles?limit=200&sort=-date&depth=1`,
-    { headers, cache: 'no-store' },
-  )
+  const res = await fetch(`${base}/api/articles?limit=200&sort=-date&depth=1`, {
+    headers,
+    cache: 'no-store',
+  })
   if (!res.ok) return []
   const data = await res.json()
   return data.docs ?? []
@@ -143,7 +143,10 @@ function EducationSection({ articles }: { articles: Article[] }) {
       <SectionHeading>Education</SectionHeading>
       <div className="space-y-4">
         {articles.map((a) => (
-          <div key={a.id} className="flex flex-col sm:flex-row sm:justify-between sm:items-baseline gap-0.5">
+          <div
+            key={a.id}
+            className="flex flex-col sm:flex-row sm:justify-between sm:items-baseline gap-0.5"
+          >
             <div>
               <h3 className="font-semibold text-slate-800">{a.title}</h3>
               {a.subtitle && <p className="text-sm text-slate-500">{a.subtitle}</p>}
@@ -165,7 +168,9 @@ function SkillsSection({ articles }: { articles: Article[] }) {
       <div className="space-y-2">
         {articles.map((a) => (
           <div key={a.id} className="flex flex-col sm:flex-row gap-1">
-            <span className="text-sm font-semibold text-slate-700 sm:w-48 shrink-0">{a.title}:</span>
+            <span className="text-sm font-semibold text-slate-700 sm:w-48 shrink-0">
+              {a.title}:
+            </span>
             <span className="text-sm text-slate-600">{a.summary}</span>
           </div>
         ))}
@@ -189,8 +194,12 @@ function ProjectsSection({ articles }: { articles: Article[] }) {
                 </span>
               )}
             </div>
-            {a.subtitle && <p className="text-xs text-indigo-600 font-medium mt-0.5">{a.subtitle}</p>}
-            {a.summary && <p className="text-xs text-slate-600 mt-1 leading-relaxed">{a.summary}</p>}
+            {a.subtitle && (
+              <p className="text-xs text-indigo-600 font-medium mt-0.5">{a.subtitle}</p>
+            )}
+            {a.summary && (
+              <p className="text-xs text-slate-600 mt-1 leading-relaxed">{a.summary}</p>
+            )}
             {a.technologies && a.technologies.length > 0 && (
               <div className="flex flex-wrap gap-1 mt-2">
                 {a.technologies.map((t, i) => (
@@ -222,9 +231,7 @@ function AwardsSection({ articles }: { articles: Article[] }) {
             </span>
             <div>
               <span className="text-sm font-semibold text-slate-800">{a.title}</span>
-              {a.subtitle && (
-                <span className="text-sm text-slate-500"> — {a.subtitle}</span>
-              )}
+              {a.subtitle && <span className="text-sm text-slate-500"> — {a.subtitle}</span>}
             </div>
           </li>
         ))}
@@ -274,15 +281,12 @@ export default async function CVPage() {
 
   // Sort articles within each group by date descending
   for (const slug of Object.keys(bySlug)) {
-    bySlug[slug].sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-    )
+    bySlug[slug].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
   }
 
   return (
     <div className="min-h-screen bg-slate-50 py-10 px-4">
       <div className="max-w-3xl mx-auto space-y-10">
-
         {/* Header */}
         <header className="bg-white rounded-2xl shadow-sm p-8">
           <h1 className="text-3xl font-bold text-slate-900">{profile.name}</h1>
@@ -312,36 +316,25 @@ export default async function CVPage() {
 
         {/* CV Sections */}
         <div className="bg-white rounded-2xl shadow-sm p-8 space-y-10">
-
           {bySlug['summary'] && <SummarySection articles={bySlug['summary']} />}
 
-          {bySlug['technical-skills'] && (
-            <SkillsSection articles={bySlug['technical-skills']} />
-          )}
+          {bySlug['technical-skills'] && <SkillsSection articles={bySlug['technical-skills']} />}
 
           {bySlug['work-experience'] && (
             <WorkExperienceSection articles={bySlug['work-experience']} />
           )}
 
-          {bySlug['past-projects'] && (
-            <ProjectsSection articles={bySlug['past-projects']} />
-          )}
+          {bySlug['past-projects'] && <ProjectsSection articles={bySlug['past-projects']} />}
 
-          {bySlug['awards'] && (
-            <AwardsSection articles={bySlug['awards']} />
-          )}
+          {bySlug['awards'] && <AwardsSection articles={bySlug['awards']} />}
 
-          {bySlug['education'] && (
-            <EducationSection articles={bySlug['education']} />
-          )}
-
+          {bySlug['education'] && <EducationSection articles={bySlug['education']} />}
         </div>
 
         {/* Footer */}
         <footer className="text-center text-xs text-slate-400 pb-4">
           References available upon request
         </footer>
-
       </div>
     </div>
   )
