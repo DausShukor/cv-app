@@ -1,7 +1,6 @@
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
-
-// ─── Types ───────────────────────────────────────────────────────────────────
+import { LogoutButton } from './LogoutButton'
 
 interface Highlight {
   text: string
@@ -34,6 +33,12 @@ interface Article {
   category: Category | string
 }
 
+interface MediaDoc {
+  id: string
+  url?: string
+  filename?: string
+}
+
 interface ProfileData {
   name: string
   title?: string
@@ -41,9 +46,8 @@ interface ProfileData {
   phone?: string
   location?: string
   linkedin?: string
+  photo?: MediaDoc | string | null
 }
-
-// ─── Data fetching ────────────────────────────────────────────────────────────
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
   const cookieStore = await cookies()
@@ -54,7 +58,7 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
 
 async function fetchProfile(headers: Record<string, string>): Promise<ProfileData | null> {
   const base = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'
-  const res = await fetch(`${base}/api/globals/profile`, {
+  const res = await fetch(`${base}/api/globals/profile?depth=1`, {
     headers,
     cache: 'no-store',
   })
@@ -84,8 +88,6 @@ async function fetchCategories(headers: Record<string, string>): Promise<Categor
   return data.docs ?? []
 }
 
-// ─── Helper: format date range ────────────────────────────────────────────────
-
 function formatDateRange(article: Article): string {
   const start = article.date
     ? new Date(article.date).toLocaleDateString('en-MY', { month: 'short', year: 'numeric' })
@@ -101,32 +103,104 @@ function formatDateRange(article: Article): string {
   return start
 }
 
-// ─── Section components ───────────────────────────────────────────────────────
-
 function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="text-lg font-bold uppercase tracking-widest text-indigo-600 border-b-2 border-indigo-100 pb-1 mb-4">
-      {children}
-    </h2>
+    <div className="mb-3">
+      <h2 className="text-[10.5pt] font-bold uppercase tracking-wider text-slate-900 print:text-black">
+        {children}
+      </h2>
+      <div className="h-[1.5px] bg-slate-800 mt-0.5 print:bg-black" />
+    </div>
+  )
+}
+
+function ProfessionalSummarySection({ articles }: { articles: Article[] }) {
+  const summary = articles[0]
+  if (!summary?.summary) return null
+  return (
+    <section className="mb-5">
+      <SectionHeading>Professional Summary</SectionHeading>
+      <p className="text-[9.5pt] text-slate-700 leading-relaxed print:text-black">
+        {summary.summary}
+      </p>
+    </section>
+  )
+}
+
+function TechnicalSkillsSection({ articles }: { articles: Article[] }) {
+  return (
+    <section className="mb-5">
+      <SectionHeading>Technical Skills</SectionHeading>
+      <ul className="space-y-1">
+        {articles.map((a) => (
+          <li key={a.id} className="text-[9.5pt] text-slate-700 print:text-black">
+            <span className="font-bold text-slate-900 print:text-black">{a.title}:</span>{' '}
+            <span className="italic">{a.summary}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
+function EducationSection({ articles }: { articles: Article[] }) {
+  return (
+    <section className="mb-5">
+      <SectionHeading>Education</SectionHeading>
+      <div className="space-y-2">
+        {articles.map((a) => (
+          <div key={a.id} className="flex justify-between items-baseline gap-2">
+            <div>
+              <span className="font-bold text-[9.5pt] text-slate-900 print:text-black">
+                {a.title}
+              </span>
+              {a.subtitle && (
+                <span className="text-[9.5pt] text-slate-700 print:text-black"> | {a.subtitle}</span>
+              )}
+            </div>
+            <span className="text-[9.5pt] text-slate-700 whitespace-nowrap print:text-black">
+              {a.date ? new Date(a.date).getFullYear() : ''}
+            </span>
+          </div>
+        ))}
+      </div>
+    </section>
   )
 }
 
 function WorkExperienceSection({ articles }: { articles: Article[] }) {
   return (
-    <section>
+    <section className="mb-5">
       <SectionHeading>Work Experience</SectionHeading>
-      <div className="space-y-6">
+      <div className="space-y-4">
         {articles.map((a) => (
           <div key={a.id}>
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-baseline gap-0.5">
-              <h3 className="font-semibold text-slate-800">{a.title}</h3>
-              <span className="text-xs text-slate-400 whitespace-nowrap">{formatDateRange(a)}</span>
+            <div className="flex justify-between items-baseline gap-2">
+              <span className="font-bold text-[9.5pt] text-slate-900 print:text-black">
+                {a.title}
+              </span>
+              <span className="text-[9pt] text-slate-600 whitespace-nowrap print:text-black">
+                {formatDateRange(a)}
+              </span>
             </div>
-            {a.subtitle && <p className="text-sm text-slate-500 mb-1">{a.subtitle}</p>}
+            {a.subtitle && (
+              <p className="text-[9.5pt] text-slate-600 italic print:text-black">{a.subtitle}</p>
+            )}
             {a.highlights && a.highlights.length > 0 && (
-              <ul className="mt-1 space-y-1 list-disc list-inside text-sm text-slate-700">
+              <ul className="mt-1 space-y-0.5 list-disc list-outside pl-4">
                 {a.highlights.map((h, i) => (
-                  <li key={i}>{h.text}</li>
+                  <li key={i} className="text-[9.5pt] text-slate-700 print:text-black">
+                    {h.text.includes(':') ? (
+                      <>
+                        <strong className="font-semibold text-slate-900 print:text-black">
+                          {h.text.split(':')[0]}:
+                        </strong>
+                        {h.text.substring(h.text.indexOf(':') + 1)}
+                      </>
+                    ) : (
+                      h.text
+                    )}
+                  </li>
                 ))}
               </ul>
             )}
@@ -137,80 +211,31 @@ function WorkExperienceSection({ articles }: { articles: Article[] }) {
   )
 }
 
-function EducationSection({ articles }: { articles: Article[] }) {
+function PastProjectsSection({ articles }: { articles: Article[] }) {
   return (
-    <section>
-      <SectionHeading>Education</SectionHeading>
+    <section className="mb-5">
+      <SectionHeading>Past Projects</SectionHeading>
       <div className="space-y-4">
         {articles.map((a) => (
-          <div
-            key={a.id}
-            className="flex flex-col sm:flex-row sm:justify-between sm:items-baseline gap-0.5"
-          >
-            <div>
-              <h3 className="font-semibold text-slate-800">{a.title}</h3>
-              {a.subtitle && <p className="text-sm text-slate-500">{a.subtitle}</p>}
-            </div>
-            <span className="text-xs text-slate-400 whitespace-nowrap">
-              {a.date ? new Date(a.date).getFullYear() : ''}
-            </span>
-          </div>
-        ))}
-      </div>
-    </section>
-  )
-}
-
-function SkillsSection({ articles }: { articles: Article[] }) {
-  return (
-    <section>
-      <SectionHeading>Technical Skills</SectionHeading>
-      <div className="space-y-2">
-        {articles.map((a) => (
-          <div key={a.id} className="flex flex-col sm:flex-row gap-1">
-            <span className="text-sm font-semibold text-slate-700 sm:w-48 shrink-0">
-              {a.title}:
-            </span>
-            <span className="text-sm text-slate-600">{a.summary}</span>
-          </div>
-        ))}
-      </div>
-    </section>
-  )
-}
-
-function ProjectsSection({ articles }: { articles: Article[] }) {
-  return (
-    <section>
-      <SectionHeading>Past Projects</SectionHeading>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {articles.map((a) => (
-          <div key={a.id} className="border border-slate-200 rounded-xl p-4 bg-white">
-            <div className="flex justify-between items-start gap-2">
-              <h3 className="font-semibold text-slate-800 text-sm">{a.title}</h3>
-              {a.date && (
-                <span className="text-xs text-slate-400 whitespace-nowrap">
-                  {new Date(a.date).getFullYear()}
-                </span>
-              )}
+          <div key={a.id}>
+            <div className="flex justify-between items-baseline gap-2">
+              <span className="font-bold text-[9.5pt] text-slate-900 print:text-black">
+                {a.title}
+              </span>
+              <span className="text-[9pt] text-slate-600 whitespace-nowrap print:text-black">
+                {a.date ? new Date(a.date).getFullYear() : ''}
+              </span>
             </div>
             {a.subtitle && (
-              <p className="text-xs text-indigo-600 font-medium mt-0.5">{a.subtitle}</p>
+              <p className="text-[9.5pt] text-slate-600 print:text-black">{a.subtitle}</p>
             )}
             {a.summary && (
-              <p className="text-xs text-slate-600 mt-1 leading-relaxed">{a.summary}</p>
+              <p className="text-[9.5pt] text-slate-700 mt-0.5 print:text-black">{a.summary}</p>
             )}
             {a.technologies && a.technologies.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-2">
-                {a.technologies.map((t, i) => (
-                  <span
-                    key={i}
-                    className="text-xs bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full"
-                  >
-                    {t.name}
-                  </span>
-                ))}
-              </div>
+              <p className="text-[9pt] text-slate-600 italic mt-0.5 print:text-black">
+                (Technologies: {a.technologies.map((t) => t.name).join(', ')})
+              </p>
             )}
           </div>
         ))}
@@ -221,37 +246,23 @@ function ProjectsSection({ articles }: { articles: Article[] }) {
 
 function AwardsSection({ articles }: { articles: Article[] }) {
   return (
-    <section>
+    <section className="mb-5">
       <SectionHeading>Awards &amp; Recognitions</SectionHeading>
-      <ul className="space-y-2">
+      <ul className="space-y-1 list-disc list-outside pl-4">
         {articles.map((a) => (
-          <li key={a.id} className="flex gap-3 items-start">
-            <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md whitespace-nowrap mt-0.5">
+          <li key={a.id} className="text-[9.5pt] text-slate-700 print:text-black">
+            <span className="font-bold text-slate-900 print:text-black">
               {a.date ? new Date(a.date).getFullYear() : ''}
-            </span>
-            <div>
-              <span className="text-sm font-semibold text-slate-800">{a.title}</span>
-              {a.subtitle && <span className="text-sm text-slate-500"> — {a.subtitle}</span>}
-            </div>
+            </span>{' '}
+            |{' '}
+            <span className="font-bold text-slate-900 print:text-black">{a.title}</span>
+            {a.subtitle && <span className="text-slate-700 print:text-black">: {a.subtitle}</span>}
           </li>
         ))}
       </ul>
     </section>
   )
 }
-
-function SummarySection({ articles }: { articles: Article[] }) {
-  const summary = articles[0]
-  if (!summary?.summary) return null
-  return (
-    <section>
-      <SectionHeading>Professional Summary</SectionHeading>
-      <p className="text-sm text-slate-700 leading-relaxed">{summary.summary}</p>
-    </section>
-  )
-}
-
-// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function CVPage() {
   const authHeaders = await getAuthHeaders()
@@ -284,57 +295,88 @@ export default async function CVPage() {
     bySlug[slug].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
   }
 
+  let photoUrl: string | null = null
+  if (profile.photo && typeof profile.photo === 'object') {
+    const media = profile.photo as MediaDoc
+    const base = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'
+    photoUrl = media.url || (media.filename ? `${base}/api/media/file/${media.filename}` : null)
+  }
+
   return (
-    <div className="min-h-screen bg-slate-50 py-10 px-4">
-      <div className="max-w-3xl mx-auto space-y-10">
-        {/* Header */}
-        <header className="bg-white rounded-2xl shadow-sm p-8">
-          <h1 className="text-3xl font-bold text-slate-900">{profile.name}</h1>
-          {profile.title && (
-            <p className="text-base text-indigo-600 font-medium mt-1">{profile.title}</p>
-          )}
-          <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3 text-sm text-slate-500">
-            {profile.email && (
-              <a href={`mailto:${profile.email}`} className="hover:text-indigo-600">
-                {profile.email}
-              </a>
+    <div className="min-h-screen bg-slate-100 print:bg-white">
+      {/* Toolbar — hidden when printing */}
+      <div className="print:hidden sticky top-0 z-10 bg-white border-b border-slate-200 px-4 py-2 flex justify-end gap-2 shadow-sm">
+        <LogoutButton />
+      </div>
+
+      {/* CV document — A4-ish width */}
+      <div className="max-w-[794px] mx-auto bg-white shadow-sm mt-6 mb-10 px-10 py-8 print:shadow-none print:mt-0 print:mb-0 print:px-8 print:py-6">
+        {/* ── Header ── */}
+        <header className="flex gap-6 mb-6">
+          <div className="shrink-0 overflow-hidden rounded border border-slate-200" style={{ width: '90px', aspectRatio: '7/10' }}>
+            {photoUrl ? (
+              <img src={photoUrl} alt={profile.name} className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full bg-slate-100" />
             )}
-            {profile.phone && <span>{profile.phone}</span>}
-            {profile.location && <span>{profile.location}</span>}
-            {profile.linkedin && (
-              <a
-                href={profile.linkedin}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-indigo-600"
-              >
-                LinkedIn
-              </a>
+          </div>
+
+          {/* Name + title + contact */}
+          <div className="flex flex-col justify-center min-w-0">
+            <h1 className="text-[20pt] font-bold text-slate-900 leading-tight print:text-black">
+              {profile.name}
+            </h1>
+            {profile.title && (
+              <p className="text-[10pt] text-slate-700 mt-0.5 leading-snug print:text-black">
+                {profile.title}
+              </p>
             )}
+            <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-2 text-[9pt] text-slate-600 print:text-black">
+              {profile.email && (
+                <a href={`mailto:${profile.email}`} className="hover:underline print:no-underline">
+                  {profile.email}
+                </a>
+              )}
+              {profile.phone && <span>| {profile.phone}</span>}
+              {profile.location && <span>| {profile.location}</span>}
+              {profile.linkedin && (
+                <span>
+                  |{' '}
+                  <a
+                    href={profile.linkedin}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:underline print:no-underline"
+                  >
+                    {profile.linkedin}
+                  </a>
+                </span>
+              )}
+            </div>
           </div>
         </header>
 
-        {/* CV Sections */}
-        <div className="bg-white rounded-2xl shadow-sm p-8 space-y-10">
-          {bySlug['summary'] && <SummarySection articles={bySlug['summary']} />}
-
-          {bySlug['technical-skills'] && <SkillsSection articles={bySlug['technical-skills']} />}
-
+        {/* ── CV Body ── */}
+        <div>
+          {bySlug['summary'] && <ProfessionalSummarySection articles={bySlug['summary']} />}
+          {bySlug['technical-skills'] && (
+            <TechnicalSkillsSection articles={bySlug['technical-skills']} />
+          )}
+          {bySlug['education'] && <EducationSection articles={bySlug['education']} />}
           {bySlug['work-experience'] && (
             <WorkExperienceSection articles={bySlug['work-experience']} />
           )}
-
-          {bySlug['past-projects'] && <ProjectsSection articles={bySlug['past-projects']} />}
-
+          {bySlug['past-projects'] && <PastProjectsSection articles={bySlug['past-projects']} />}
           {bySlug['awards'] && <AwardsSection articles={bySlug['awards']} />}
 
-          {bySlug['education'] && <EducationSection articles={bySlug['education']} />}
+          {/* Reference */}
+          <section>
+            <SectionHeading>Reference</SectionHeading>
+            <p className="text-[9.5pt] text-slate-700 print:text-black">
+              References available upon request
+            </p>
+          </section>
         </div>
-
-        {/* Footer */}
-        <footer className="text-center text-xs text-slate-400 pb-4">
-          References available upon request
-        </footer>
       </div>
     </div>
   )

@@ -11,6 +11,14 @@ export const Profile: GlobalConfig = {
   },
   fields: [
     {
+      name: 'photo',
+      type: 'upload',
+      relationTo: 'media',
+      admin: {
+        description: 'Profile photo.',
+      },
+    },
+    {
       name: 'name',
       type: 'text',
       required: true,
