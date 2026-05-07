@@ -534,7 +534,7 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
 export interface Profile {
   id: number;
   /**
-   * Profile photo (will be cropped to 7:10 portrait ratio).
+   * Profile photo.
    */
   photo?: (number | null) | Media;
   name: string;
