@@ -1,10 +1,8 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
 export function LogoutButton() {
-  const router = useRouter()
   const [loading, setLoading] = useState(false)
 
   async function handleLogout() {
@@ -15,7 +13,7 @@ export function LogoutButton() {
         credentials: 'include',
       })
     } finally {
-      router.push('/login')
+      window.location.href = '/login'
     }
   }
 
