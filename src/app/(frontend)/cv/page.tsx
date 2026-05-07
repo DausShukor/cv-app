@@ -1,5 +1,7 @@
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
+import { getPayload } from 'payload'
+import configPromise from '@payload-config'
 import { LogoutButton } from './LogoutButton'
 
 interface Highlight {
@@ -47,45 +49,6 @@ interface ProfileData {
   location?: string
   linkedin?: string
   photo?: MediaDoc | string | null
-}
-
-async function getAuthHeaders(): Promise<Record<string, string>> {
-  const cookieStore = await cookies()
-  const token = cookieStore.get('payload-token')?.value
-  if (!token) return {}
-  return { Authorization: `JWT ${token}` }
-}
-
-async function fetchProfile(headers: Record<string, string>): Promise<ProfileData | null> {
-  const base = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'
-  const res = await fetch(`${base}/api/globals/profile?depth=1`, {
-    headers,
-    cache: 'no-store',
-  })
-  if (!res.ok) return null
-  return res.json()
-}
-
-async function fetchArticles(headers: Record<string, string>): Promise<Article[]> {
-  const base = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'
-  const res = await fetch(`${base}/api/articles?limit=200&sort=-date&depth=1`, {
-    headers,
-    cache: 'no-store',
-  })
-  if (!res.ok) return []
-  const data = await res.json()
-  return data.docs ?? []
-}
-
-async function fetchCategories(headers: Record<string, string>): Promise<Category[]> {
-  const base = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'
-  const res = await fetch(`${base}/api/categories?limit=50&sort=order`, {
-    headers,
-    cache: 'no-store',
-  })
-  if (!res.ok) return []
-  const data = await res.json()
-  return data.docs ?? []
 }
 
 function formatDateRange(article: Article): string {
@@ -265,19 +228,25 @@ function AwardsSection({ articles }: { articles: Article[] }) {
 }
 
 export default async function CVPage() {
-  const authHeaders = await getAuthHeaders()
+  const cookieStore = await cookies()
+  const token = cookieStore.get('payload-token')?.value
 
-  if (!authHeaders.Authorization) {
+  if (!token) {
     redirect('/login')
   }
 
-  const [profile, articles, categories] = await Promise.all([
-    fetchProfile(authHeaders),
-    fetchArticles(authHeaders),
-    fetchCategories(authHeaders),
+  const payload = await getPayload({ config: configPromise })
+
+  // Use local API — no HTTP, direct DB access
+  const [profileData, articlesData] = await Promise.all([
+    payload.findGlobal({ slug: 'profile', depth: 1, overrideAccess: true }),
+    payload.find({ collection: 'articles', limit: 200, sort: '-date', depth: 1, overrideAccess: true }),
   ])
 
-  if (!profile) {
+  const profile = profileData as unknown as ProfileData
+  const articles = (articlesData.docs ?? []) as unknown as Article[]
+
+  if (!profile?.name) {
     redirect('/login')
   }
 
