@@ -34,12 +34,6 @@ interface Article {
   category: Category | string
 }
 
-interface MediaDoc {
-  id: string
-  url?: string
-  filename?: string
-}
-
 interface ProfileData {
   name: string
   title?: string
@@ -47,7 +41,7 @@ interface ProfileData {
   phone?: string
   location?: string
   linkedin?: string
-  photo?: MediaDoc | string | null
+  photoUrl?: string | null
 }
 
 function formatDateRange(article: Article): string {
@@ -270,12 +264,7 @@ export default async function CVPage() {
     bySlug[slug].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
   }
 
-  let photoUrl: string | null = null
-  if (profile.photo && typeof profile.photo === 'object') {
-    const media = profile.photo as MediaDoc
-    const base = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'
-    photoUrl = media.url || (media.filename ? `${base}/api/media/file/${media.filename}` : null)
-  }
+  const photoUrl = profile.photoUrl || null
 
   return (
     <div className="min-h-screen bg-slate-100 py-10 print:bg-white print:py-0">
