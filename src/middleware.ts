@@ -16,26 +16,10 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(loginUrl)
   }
 
-  // Verify the token with Payload's /me endpoint
-  const base = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'
-  try {
-    const res = await fetch(`${base}/api/frontend-users/me`, {
-      headers: { Authorization: `JWT ${token}` },
-    })
-
-    if (!res.ok) {
-      const loginUrl = req.nextUrl.clone()
-      loginUrl.pathname = '/login'
-      const response = NextResponse.redirect(loginUrl)
-      response.cookies.delete('payload-token')
-      return response
-    }
-  } catch {
-    // If the auth check fails (e.g. cold start), allow through —
-    // the page-level server component will redirect if data is missing
-    return NextResponse.next()
-  }
-
+  // Token exists — allow through.
+  // Avoid HTTP self-calls here: on Vercel serverless they cause cold-start
+  // timeouts that loop back to /login. The CV page server component handles
+  // any invalid/expired token at the data-fetch level.
   return NextResponse.next()
 }
 
