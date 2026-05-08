@@ -240,7 +240,13 @@ export default async function CVPage() {
 
   const [profileData, articlesData] = await Promise.all([
     payload.findGlobal({ slug: 'profile', depth: 1, overrideAccess: true }),
-    payload.find({ collection: 'articles', limit: 200, sort: '-date', depth: 1, overrideAccess: true }),
+    payload.find({
+      collection: 'articles',
+      limit: 200,
+      sort: '-date',
+      depth: 1,
+      overrideAccess: true,
+    }),
   ])
 
   const profile = profileData as unknown as ProfileData
@@ -272,9 +278,9 @@ export default async function CVPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 print:bg-white">
+    <div className="min-h-screen bg-slate-100 py-10 print:bg-white print:py-0">
       {/* CV document — A4-ish width */}
-      <div className="max-w-[794px] mx-auto bg-white shadow-sm mt-6 mb-10 px-10 py-8 print:shadow-none print:mt-0 print:mb-0 print:px-8 print:py-6">
+      <div className="max-w-[794px] mx-auto bg-white shadow-sm px-10 py-8 print:shadow-none print:px-8 print:py-6">
         {/* ── Header ── */}
         <header className="flex gap-6 mb-6">
           <div
@@ -298,27 +304,30 @@ export default async function CVPage() {
                 {profile.title}
               </p>
             )}
-            <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-2 text-[9pt] text-slate-600 print:text-black">
-              {profile.email && (
-                <a href={`mailto:${profile.email}`} className="hover:underline print:no-underline">
-                  {profile.email}
-                </a>
-              )}
-              {profile.phone && <span>| {profile.phone}</span>}
-              {profile.location && <span>| {profile.location}</span>}
-              {profile.linkedin && (
-                <span>
-                  |{' '}
-                  <a
-                    href={profile.linkedin}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:underline print:no-underline"
-                  >
-                    {profile.linkedin}
-                  </a>
-                </span>
-              )}
+            <div className="flex flex-wrap gap-y-0.5 mt-2 text-[9pt] text-slate-600 print:text-black">
+              {(() => {
+                const items: React.ReactNode[] = []
+                if (profile.email)
+                  items.push(
+                    <a key="email" href={`mailto:${profile.email}`} className="hover:underline print:no-underline">
+                      {profile.email}
+                    </a>,
+                  )
+                if (profile.phone) items.push(<span key="phone">{profile.phone}</span>)
+                if (profile.location) items.push(<span key="location">{profile.location}</span>)
+                if (profile.linkedin)
+                  items.push(
+                    <a key="linkedin" href={profile.linkedin} target="_blank" rel="noopener noreferrer" className="hover:underline print:no-underline">
+                      {profile.linkedin}
+                    </a>,
+                  )
+                return items.map((item, i) => (
+                  <span key={i} className="flex items-center">
+                    {item}
+                    {i < items.length - 1 && <span className="mx-2">|</span>}
+                  </span>
+                ))
+              })()}
             </div>
           </div>
         </header>
