@@ -37,6 +37,11 @@ export default buildConfig({
       // On Vercel (serverless) keep connections low to avoid exhaustion.
       // Locally use a higher limit so Payload can run concurrent queries.
       max: process.env.VERCEL ? 1 : 10,
+      // Required for Supabase PgBouncer transaction mode (port 6543).
+      // Disables prepared statements which are not supported in transaction mode.
+      statement_timeout: process.env.VERCEL ? 20000 : undefined,
+      connectionTimeoutMillis: process.env.VERCEL ? 10000 : undefined,
+      idleTimeoutMillis: process.env.VERCEL ? 10000 : undefined,
     },
   }),
   sharp,
