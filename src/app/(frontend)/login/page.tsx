@@ -29,8 +29,7 @@ export default function LoginPage() {
         return
       }
 
-      // Hard redirect so the browser sends the new cookie on the next request
-      window.location.href = '/cv'
+      router.push('/cv')
     } catch {
       setError('Network error. Please try again.')
     } finally {
