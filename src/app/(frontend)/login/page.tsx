@@ -1,8 +1,10 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
 export default function LoginPage() {
+  const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -27,6 +29,7 @@ export default function LoginPage() {
         return
       }
 
+      // Hard redirect so the browser sends the new cookie on the next request
       window.location.href = '/cv'
     } catch {
       setError('Network error. Please try again.')
