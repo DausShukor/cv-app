@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { LogoutButton } from './LogoutButton'
+import { getPayload } from 'payload'
+import configPromise from '@payload-config'
 
 interface Highlight {
   text: string
@@ -47,45 +48,6 @@ interface ProfileData {
   location?: string
   linkedin?: string
   photo?: MediaDoc | string | null
-}
-
-async function getAuthHeaders(): Promise<Record<string, string>> {
-  const cookieStore = await cookies()
-  const token = cookieStore.get('payload-token')?.value
-  if (!token) return {}
-  return { Authorization: `JWT ${token}` }
-}
-
-async function fetchProfile(headers: Record<string, string>): Promise<ProfileData | null> {
-  const base = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'
-  const res = await fetch(`${base}/api/globals/profile?depth=1`, {
-    headers,
-    cache: 'no-store',
-  })
-  if (!res.ok) return null
-  return res.json()
-}
-
-async function fetchArticles(headers: Record<string, string>): Promise<Article[]> {
-  const base = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'
-  const res = await fetch(`${base}/api/articles?limit=200&sort=-date&depth=1`, {
-    headers,
-    cache: 'no-store',
-  })
-  if (!res.ok) return []
-  const data = await res.json()
-  return data.docs ?? []
-}
-
-async function fetchCategories(headers: Record<string, string>): Promise<Category[]> {
-  const base = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'
-  const res = await fetch(`${base}/api/categories?limit=50&sort=order`, {
-    headers,
-    cache: 'no-store',
-  })
-  if (!res.ok) return []
-  const data = await res.json()
-  return data.docs ?? []
 }
 
 function formatDateRange(article: Article): string {
@@ -267,19 +229,24 @@ function AwardsSection({ articles }: { articles: Article[] }) {
 }
 
 export default async function CVPage() {
-  const authHeaders = await getAuthHeaders()
+  const cookieStore = await cookies()
+  const token = cookieStore.get('payload-token')?.value
 
-  if (!authHeaders.Authorization) {
+  if (!token) {
     redirect('/login')
   }
 
-  const [profile, articles, categories] = await Promise.all([
-    fetchProfile(authHeaders),
-    fetchArticles(authHeaders),
-    fetchCategories(authHeaders),
+  const payload = await getPayload({ config: configPromise })
+
+  const [profileData, articlesData] = await Promise.all([
+    payload.findGlobal({ slug: 'profile', depth: 1, overrideAccess: true }),
+    payload.find({ collection: 'articles', limit: 200, sort: '-date', depth: 1, overrideAccess: true }),
   ])
 
-  if (!profile) {
+  const profile = profileData as unknown as ProfileData
+  const articles = (articlesData.docs ?? []) as unknown as Article[]
+
+  if (!profile?.name) {
     redirect('/login')
   }
 
@@ -306,11 +273,6 @@ export default async function CVPage() {
 
   return (
     <div className="min-h-screen bg-slate-100 print:bg-white">
-      {/* Toolbar — hidden when printing */}
-      <div className="print:hidden sticky top-0 z-10 bg-white border-b border-slate-200 px-4 py-2 flex justify-end gap-2 shadow-sm">
-        <LogoutButton />
-      </div>
-
       {/* CV document — A4-ish width */}
       <div className="max-w-[794px] mx-auto bg-white shadow-sm mt-6 mb-10 px-10 py-8 print:shadow-none print:mt-0 print:mb-0 print:px-8 print:py-6">
         {/* ── Header ── */}
