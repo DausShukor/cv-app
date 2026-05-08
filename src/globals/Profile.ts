@@ -11,10 +11,11 @@ export const Profile: GlobalConfig = {
   },
   fields: [
     {
-      name: 'photoUrl',
-      type: 'text',
+      name: 'photo',
+      type: 'upload',
+      relationTo: 'media',
       admin: {
-        description: 'Paste any public image URL for the profile photo.',
+        description: 'Profile photo.',
       },
     },
     {

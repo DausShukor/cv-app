@@ -534,9 +534,9 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
 export interface Profile {
   id: number;
   /**
-   * Paste any public image URL for the profile photo.
+   * Profile photo.
    */
-  photoUrl?: string | null;
+  photo?: (number | null) | Media;
   name: string;
   /**
    * Professional headline shown below the name.
@@ -557,7 +557,7 @@ export interface Profile {
  * via the `definition` "profile_select".
  */
 export interface ProfileSelect<T extends boolean = true> {
-  photoUrl?: T;
+  photo?: T;
   name?: T;
   title?: T;
   email?: T;

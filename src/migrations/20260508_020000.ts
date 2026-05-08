@@ -1,0 +1,17 @@
+import { MigrateUpArgs, MigrateDownArgs, sql } from '@payloadcms/db-postgres'
+
+export async function up({ db }: MigrateUpArgs): Promise<void> {
+  await db.execute(sql`
+    ALTER TABLE "profile"
+      DROP COLUMN IF EXISTS "photo_url",
+      ADD COLUMN IF NOT EXISTS "photo_id" integer REFERENCES "media"("id") ON DELETE set null ON UPDATE no action;
+  `)
+}
+
+export async function down({ db }: MigrateDownArgs): Promise<void> {
+  await db.execute(sql`
+    ALTER TABLE "profile"
+      DROP COLUMN IF EXISTS "photo_id",
+      ADD COLUMN IF NOT EXISTS "photo_url" varchar;
+  `)
+}
