@@ -1,7 +1,5 @@
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { getPayload } from 'payload'
-import configPromise from '@payload-config'
 import { LogoutButton } from './LogoutButton'
 
 interface Highlight {
@@ -49,6 +47,45 @@ interface ProfileData {
   location?: string
   linkedin?: string
   photo?: MediaDoc | string | null
+}
+
+async function getAuthHeaders(): Promise<Record<string, string>> {
+  const cookieStore = await cookies()
+  const token = cookieStore.get('payload-token')?.value
+  if (!token) return {}
+  return { Authorization: `JWT ${token}` }
+}
+
+async function fetchProfile(headers: Record<string, string>): Promise<ProfileData | null> {
+  const base = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'
+  const res = await fetch(`${base}/api/globals/profile?depth=1`, {
+    headers,
+    cache: 'no-store',
+  })
+  if (!res.ok) return null
+  return res.json()
+}
+
+async function fetchArticles(headers: Record<string, string>): Promise<Article[]> {
+  const base = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'
+  const res = await fetch(`${base}/api/articles?limit=200&sort=-date&depth=1`, {
+    headers,
+    cache: 'no-store',
+  })
+  if (!res.ok) return []
+  const data = await res.json()
+  return data.docs ?? []
+}
+
+async function fetchCategories(headers: Record<string, string>): Promise<Category[]> {
+  const base = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'
+  const res = await fetch(`${base}/api/categories?limit=50&sort=order`, {
+    headers,
+    cache: 'no-store',
+  })
+  if (!res.ok) return []
+  const data = await res.json()
+  return data.docs ?? []
 }
 
 function formatDateRange(article: Article): string {
@@ -118,7 +155,10 @@ function EducationSection({ articles }: { articles: Article[] }) {
                 {a.title}
               </span>
               {a.subtitle && (
-                <span className="text-[9.5pt] text-slate-700 print:text-black"> | {a.subtitle}</span>
+                <span className="text-[9.5pt] text-slate-700 print:text-black">
+                  {' '}
+                  | {a.subtitle}
+                </span>
               )}
             </div>
             <span className="text-[9.5pt] text-slate-700 whitespace-nowrap print:text-black">
@@ -217,8 +257,7 @@ function AwardsSection({ articles }: { articles: Article[] }) {
             <span className="font-bold text-slate-900 print:text-black">
               {a.date ? new Date(a.date).getFullYear() : ''}
             </span>{' '}
-            |{' '}
-            <span className="font-bold text-slate-900 print:text-black">{a.title}</span>
+            | <span className="font-bold text-slate-900 print:text-black">{a.title}</span>
             {a.subtitle && <span className="text-slate-700 print:text-black">: {a.subtitle}</span>}
           </li>
         ))}
@@ -228,25 +267,19 @@ function AwardsSection({ articles }: { articles: Article[] }) {
 }
 
 export default async function CVPage() {
-  const cookieStore = await cookies()
-  const token = cookieStore.get('payload-token')?.value
+  const authHeaders = await getAuthHeaders()
 
-  if (!token) {
+  if (!authHeaders.Authorization) {
     redirect('/login')
   }
 
-  const payload = await getPayload({ config: configPromise })
-
-  // Use local API — no HTTP, direct DB access
-  const [profileData, articlesData] = await Promise.all([
-    payload.findGlobal({ slug: 'profile', depth: 1, overrideAccess: true }),
-    payload.find({ collection: 'articles', limit: 200, sort: '-date', depth: 1, overrideAccess: true }),
+  const [profile, articles, categories] = await Promise.all([
+    fetchProfile(authHeaders),
+    fetchArticles(authHeaders),
+    fetchCategories(authHeaders),
   ])
 
-  const profile = profileData as unknown as ProfileData
-  const articles = (articlesData.docs ?? []) as unknown as Article[]
-
-  if (!profile?.name) {
+  if (!profile) {
     redirect('/login')
   }
 
@@ -282,7 +315,10 @@ export default async function CVPage() {
       <div className="max-w-[794px] mx-auto bg-white shadow-sm mt-6 mb-10 px-10 py-8 print:shadow-none print:mt-0 print:mb-0 print:px-8 print:py-6">
         {/* ── Header ── */}
         <header className="flex gap-6 mb-6">
-          <div className="shrink-0 overflow-hidden rounded border border-slate-200" style={{ width: '90px', aspectRatio: '7/10' }}>
+          <div
+            className="shrink-0 overflow-hidden rounded border border-slate-200"
+            style={{ width: '90px', aspectRatio: '7/10' }}
+          >
             {photoUrl ? (
               <img src={photoUrl} alt={profile.name} className="w-full h-full object-cover" />
             ) : (
