@@ -309,7 +309,11 @@ export default async function CVPage() {
                 const items: React.ReactNode[] = []
                 if (profile.email)
                   items.push(
-                    <a key="email" href={`mailto:${profile.email}`} className="hover:underline print:no-underline">
+                    <a
+                      key="email"
+                      href={`mailto:${profile.email}`}
+                      className="hover:underline print:no-underline"
+                    >
                       {profile.email}
                     </a>,
                   )
@@ -317,7 +321,13 @@ export default async function CVPage() {
                 if (profile.location) items.push(<span key="location">{profile.location}</span>)
                 if (profile.linkedin)
                   items.push(
-                    <a key="linkedin" href={profile.linkedin} target="_blank" rel="noopener noreferrer" className="hover:underline print:no-underline">
+                    <a
+                      key="linkedin"
+                      href={profile.linkedin}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:underline print:no-underline"
+                    >
                       {profile.linkedin}
                     </a>,
                   )
