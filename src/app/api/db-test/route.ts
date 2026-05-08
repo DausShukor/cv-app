@@ -1,27 +1,30 @@
 import { NextResponse } from 'next/server'
+import { getPayload } from 'payload'
+import configPromise from '@payload-config'
 
 export const maxDuration = 30
 
 export async function GET() {
-  const start = Date.now()
+  const timings: Record<string, number> = {}
+  const t0 = Date.now()
+
   try {
-    // Dynamically import pg so we don't affect other routes
-    const { Client } = await import('pg')
-    const client = new Client({
-      connectionString: process.env.DATABASE_URI || '',
-      connectionTimeoutMillis: 10000,
-    })
-    await client.connect()
-    const result = await client.query('SELECT count(*) FROM frontend_users')
-    await client.end()
+    timings.start = 0
+    const payload = await getPayload({ config: configPromise })
+    timings.payloadInit = Date.now() - t0
+
+    const result = await payload.find({ collection: 'frontend-users', limit: 1 })
+    timings.query = Date.now() - t0
+
     return NextResponse.json({
       ok: true,
-      duration: Date.now() - start,
-      count: result.rows[0].count,
+      timings,
+      count: result.totalDocs,
       region: process.env.VERCEL_REGION || process.env.AWS_REGION || 'unknown',
     })
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
-    return NextResponse.json({ ok: false, error: msg, duration: Date.now() - start }, { status: 500 })
+    timings.error = Date.now() - t0
+    return NextResponse.json({ ok: false, error: msg, timings }, { status: 500 })
   }
 }
