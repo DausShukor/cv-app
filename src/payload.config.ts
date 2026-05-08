@@ -34,7 +34,9 @@ export default buildConfig({
   db: postgresAdapter({
     pool: {
       connectionString: process.env.DATABASE_URI || '',
-      max: 1,
+      // On Vercel (serverless) keep connections low to avoid exhaustion.
+      // Locally use a higher limit so Payload can run concurrent queries.
+      max: process.env.VERCEL ? 1 : 10,
     },
   }),
   sharp,
