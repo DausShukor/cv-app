@@ -252,9 +252,9 @@ export default async function CVPage() {
   const profile = profileData as unknown as ProfileData
   const articles = (articlesData.docs ?? []) as unknown as Article[]
 
-  if (!profile?.name) {
-    redirect('/login')
-  }
+  // Don't redirect to login if profile is empty — user is authenticated,
+  // profile data just hasn't been filled in yet.
+  // if (!profile?.name) { redirect('/login') }
 
   // Group articles by category slug
   const bySlug: Record<string, Article[]> = {}
